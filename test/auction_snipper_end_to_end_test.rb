@@ -1,7 +1,12 @@
 require "minitest/autorun"
 
+require File.expand_path '../test_helper.rb', __FILE__
+
 class AuctionSnipperEndToEndTest < Minitest::Test
+  include Capybara::DSL
+
   def setup
+    Capybara.app = Sinatra::Application.new
     @auction = FakeAuctionServer.new("item-54321")
     @application = ApplicationRunner.new
   end
