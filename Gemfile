@@ -4,9 +4,12 @@ gem 'xmpp4r'
 gem 'haml'
 gem 'byebug'
 gem 'pry-byebug'
+gem 'faye-websocket'
+gem 'thin'
 
 group :test do
-  gem 'capybara_minitest_spec'
   gem 'minitest'
   gem 'capybara'
+  gem 'minitest-capybara'
+  gem 'poltergeist'
 end

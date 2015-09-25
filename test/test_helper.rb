@@ -3,6 +3,7 @@ ENV['RACK_ENV'] = 'test'
 require 'rubygems'
 require 'capybara'
 require 'capybara/dsl'
+require 'minitest/capybara'
 require 'minitest/autorun'
 require 'rack/test'
 

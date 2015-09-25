@@ -3,6 +3,8 @@
   %head
     %title Auction Snipper
   %body
-    %span= @status
+    %span#sniper_status= @status
     %p
       Welcome to my website made with Sinatra and HAML
+    %script{:type => "text/javascript",
+        :src  => "../javascripts/sniper.js"}

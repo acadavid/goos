@@ -1,29 +1,35 @@
 require 'byebug'
 require "minitest/autorun"
 require 'xmpp4r/client'
+require 'pstore'
+require 'capybara/poltergeist'
 require File.expand_path '../test_helper.rb', __FILE__
 include Jabber
 
-Jabber::debug = true
+# Jabber::debug = true
 
 class AuctionSnipperEndToEndTest < Minitest::Test
   include Capybara::DSL
+  include Capybara::Assertions
 
   def setup
     @item_id = "item-54321"
-    Capybara.app = Sinatra::Application.new
+    Capybara.configure do |config|
+      config.run_server = false
+      config.default_driver = :poltergeist
+      config.app_host = "http://localhost:4567"
+    end
     @auction = FakeAuctionServer.new(@item_id)
-    @application = Capybara.app
+    @application_runner = ApplicationRunner.new
   end
 
   def test_snipper_joins_auction_and_until_auction_closes
     @auction.start_selling_item
     visit "/start-bidding-in/#{@item_id}"
-    #byebug
-    page.has_content? "Joining"
+    assert page.has_content? "Joining"
     @auction.has_received_join_request_from_snipper
     @auction.announce_closed
-    page.must_have_content "Lost"
+    assert page.has_content? "Lost"
   end
 end
 
@@ -39,18 +45,19 @@ class FakeAuctionServer
     jid = JID.new(ITEM_ID_AS_LOGIN % @item_id, XMPP_HOSTNAME, AUCTION_RESOURCE)
     @connection = XMPPConnection.new(jid)
     @message_listener = SingleMessageListener.new
+    @sender = nil
+    @sniper = PStore.new("auction")
   end
 
   def start_selling_item
     @connection.connect
     @connection.auth(AUCTION_PASSWORD)
-    listener = Class.new do
-      def chat_created(chat, created_locally)
-        @current_chat = chat
-        chat.add_message_listener @message_listener
-      end
+    @connection.send(Presence.new)
+
+    @connection.add_message_callback do |msg|
+      # TODO: Handle client petition
+      pass
     end
-    @connection.add_message_callback(listener)
   end
 
   def has_received_join_request_from_snipper
@@ -58,7 +65,8 @@ class FakeAuctionServer
   end
 
   def announce_closed
-    @current_chat.send_message(Message.new)
+    jid = JID.new("sniper", "localhost", "Auction")
+    @connection.send(Message.new(jid, "Close!"))
   end
 
   def stop
@@ -79,10 +87,20 @@ class FakeAuctionServer
     end
 
     def receives_a_message
-      refute_nil @messages.pop
+       @messages.pop
     end
   end
 end
 
 class XMPPConnection < Client
+end
+
+class ApplicationRunner
+  include Capybara::DSL
+
+  def start_bidding_in_item(item_id)
+  end
+
+  def shows_sniper_has_lost_auction
+  end
 end
