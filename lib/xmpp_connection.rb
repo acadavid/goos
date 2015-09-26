@@ -1,0 +1,2 @@
+class XMPPConnection < Client
+end

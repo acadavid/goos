@@ -1,8 +1,11 @@
 require 'byebug'
 require "minitest/autorun"
+require 'minitest/capybara'
 require 'xmpp4r/client'
 require 'pstore'
 require 'capybara/poltergeist'
+require 'capybara/assertions'
+
 require File.expand_path '../test_helper.rb', __FILE__
 include Jabber
 
@@ -15,16 +18,17 @@ class AuctionSnipperEndToEndTest < Minitest::Test
   def setup
     @item_id = "item-54321"
     Capybara.configure do |config|
-      config.run_server = false
+      config.run_server = true
       config.default_driver = :poltergeist
       config.app_host = "http://localhost:4567"
     end
     @auction = FakeAuctionServer.new(@item_id)
-    @application_runner = ApplicationRunner.new
   end
 
   def test_snipper_joins_auction_and_until_auction_closes
     @auction.start_selling_item
+    # TODO: Wrap in application runner and correctly use minitest-capybara
+    # @application_runner.start_bidding_in_item(@item_id)
     visit "/start-bidding-in/#{@item_id}"
     assert page.has_content? "Joining"
     @auction.has_received_join_request_from_snipper
@@ -46,7 +50,7 @@ class FakeAuctionServer
     @connection = XMPPConnection.new(jid)
     @message_listener = SingleMessageListener.new
     @sender = nil
-    @sniper = PStore.new("auction")
+    @sniper = PStore.new("auction.data")
   end
 
   def start_selling_item
@@ -89,18 +93,5 @@ class FakeAuctionServer
     def receives_a_message
        @messages.pop
     end
-  end
-end
-
-class XMPPConnection < Client
-end
-
-class ApplicationRunner
-  include Capybara::DSL
-
-  def start_bidding_in_item(item_id)
-  end
-
-  def shows_sniper_has_lost_auction
   end
 end

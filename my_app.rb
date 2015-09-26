@@ -22,12 +22,9 @@ get '/start-bidding-in/:item_id' do |item_id|
   AUCTION_RESOURCE = "Auction"
   AUCTION_ID_FORMAT = "#{ITEM_ID_AS_LOGIN}@localhost/#{AUCTION_RESOURCE}"
 
-  jid = JID.new("sniper", "localhost", AUCTION_RESOURCE)
-  connection = XMPPConnection.new(jid)
-  connection.connect
-  connection.auth("sniper")
-  connection.send(Presence.new)
-  auction_data = PStore.new("auction_data")
+  connection = connect_to_xmpp("localhost", "sniper", "sniper")
+
+  auction_data = PStore.new("auction.data")
 
   auction_data.transaction do
     auction_data[:status] = "Joining"
@@ -62,16 +59,11 @@ get '/ws' do
   end
 end
 
-def connect_to(hostname, username, password)
+def connect_to_xmpp(hostname, username, password)
   jid = JID.new(username, hostname, AUCTION_RESOURCE)
   connection = XMPPConnection.new(jid)
+  connection.connect
   connection.auth(password)
+  connection.send(Presence.new)
   connection
-end
-
-def auction_id
-  # TODO
-end
-
-class XMPPConnection < Client
 end
