@@ -1,14 +1,12 @@
 require 'rubygems'
 require 'sinatra'
-require 'xmpp4r/client'
 require 'pstore'
 require 'faye/websocket'
+Dir[File.join("./", "lib/*.rb")].each do |f|
+  require f
+end
 
 Faye::WebSocket.load_adapter('thin')
-
-include Jabber
-
-# Jabber::debug = true
 
 get '/' do
   @@ws = nil
@@ -24,7 +22,7 @@ get '/start-bidding-in/:item_id' do |item_id|
 
   connection = connect_to_xmpp("localhost", "sniper", "sniper")
 
-  auction_data = PStore.new("auction.data")
+  auction_data = PStore.new("auction_data.pstore")
 
   auction_data.transaction do
     auction_data[:status] = "Joining"
@@ -54,7 +52,6 @@ get '/ws' do
       @@ws = nil
     end
 
-    # Return async Rack response
     @@ws.rack_response
   end
 end

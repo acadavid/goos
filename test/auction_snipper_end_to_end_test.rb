@@ -1,21 +1,19 @@
 require 'byebug'
 require "minitest/autorun"
 require 'minitest/capybara'
-require 'xmpp4r/client'
 require 'pstore'
 require 'capybara/poltergeist'
 require 'capybara/assertions'
 
 require File.expand_path '../test_helper.rb', __FILE__
-include Jabber
 
-# Jabber::debug = true
 
 class AuctionSnipperEndToEndTest < Minitest::Test
   include Capybara::DSL
   include Capybara::Assertions
 
   def setup
+    start_server
     @item_id = "item-54321"
     Capybara.configure do |config|
       config.run_server = true
@@ -35,6 +33,31 @@ class AuctionSnipperEndToEndTest < Minitest::Test
     @auction.announce_closed
     assert page.has_content? "Lost"
   end
+
+  def teardown
+    # With fire so it doesn't leave a hanging output.
+    # Redirecting IO to a pipe is another option but
+    # it would hide all of the server output.
+    Process.kill(:KILL, @pid)
+  end
+
+  private
+  def start_server
+    @pid = Process.spawn("bundle exec ruby my_app.rb")
+    Process.detach(@pid)
+    next until server_ready? "http://localhost:4567/"
+  end
+
+  def server_ready? _url
+    begin
+      url = URI.parse(_url)
+      req = Net::HTTP.new(url.host, url.port)
+      res = req.request_head(url.path)
+      res.code == "200"
+    rescue Errno::ECONNREFUSED
+      false
+    end
+  end
 end
 
 class FakeAuctionServer
@@ -50,7 +73,7 @@ class FakeAuctionServer
     @connection = XMPPConnection.new(jid)
     @message_listener = SingleMessageListener.new
     @sender = nil
-    @sniper = PStore.new("auction.data")
+    @sniper = PStore.new("auction_data.pstore")
   end
 
   def start_selling_item
@@ -75,9 +98,6 @@ class FakeAuctionServer
 
   def stop
     @connection.disconnect
-  end
-
-  def format_login(item_id)
   end
 
   class SingleMessageListener < Minitest::Test

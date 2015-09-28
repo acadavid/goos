@@ -1,4 +1,4 @@
-*.data
+*.pstore
 *.gem
 *.rbc
 /.config
